@@ -7,21 +7,24 @@ use App\Domain\QrCode\Entities\QrCodeConfiguration;
 use App\Domain\QrCode\Services\QrCodeGeneratorServiceInterface;
 use App\Domain\QrCode\Exceptions\GenerationFailedException;
 use App\Domain\QrCode\ValueObjects\FileType;
-use Endroid\QrCode\Builder\Builder;
-use Endroid\QrCode\Encoding\Encoding;
-use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelHigh;
-use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow;
-use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelMedium;
-use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelQuartile;
-use Endroid\QrCode\RoundBlockSizeMode\RoundBlockSizeModeMargin;
-use Endroid\QrCode\Writer\PngWriter;
-use Endroid\QrCode\Writer\SvgWriter;
-use Endroid\QrCode\Writer\WebPWriter;
 
 class LibraryQrCodeGenerator implements QrCodeGeneratorServiceInterface
 {
+    private bool $libraryAvailable;
+
+    public function __construct()
+    {
+        $this->libraryAvailable = class_exists('Endroid\QrCode\Builder\Builder');
+    }
+
     public function generate(Content $content, QrCodeConfiguration $configuration): string
     {
+        if (!$this->libraryAvailable) {
+            throw new GenerationFailedException(
+                'QR Code library not available. Please install endroid/qr-code package: composer install'
+            );
+        }
+
         try {
             $builder = $this->createBuilder($content, $configuration);
             $result = $builder->build();
@@ -44,6 +47,10 @@ class LibraryQrCodeGenerator implements QrCodeGeneratorServiceInterface
 
     public function supports(QrCodeConfiguration $configuration): bool
     {
+        if (!$this->libraryAvailable) {
+            return false;
+        }
+
         return in_array(
             $configuration->getFileType()->getValue(),
             $this->getSupportedFileTypes()
@@ -55,13 +62,22 @@ class LibraryQrCodeGenerator implements QrCodeGeneratorServiceInterface
         return [FileType::PNG, FileType::JPG, FileType::SVG, FileType::PDF];
     }
 
-    private function createBuilder(Content $content, QrCodeConfiguration $configuration): Builder
+    private function createBuilder(Content $content, QrCodeConfiguration $configuration)
     {
-        $builder = Builder::create()
+        if (!$this->libraryAvailable) {
+            throw new GenerationFailedException('QR Code library not available');
+        }
+
+        // Dynamically load classes to avoid fatal errors when library is missing
+        $builderClass = 'Endroid\QrCode\Builder\Builder';
+        $encodingClass = 'Endroid\QrCode\Encoding\Encoding';
+        $roundBlockModeClass = 'Endroid\QrCode\RoundBlockSizeMode\RoundBlockSizeModeMargin';
+        
+        $builder = $builderClass::create()
             ->data($content->getValue())
-            ->encoding(new Encoding('UTF-8'))
+            ->encoding(new $encodingClass('UTF-8'))
             ->size($configuration->getSize()->getWidth())
-            ->roundBlockSizeMode(new RoundBlockSizeModeMargin());
+            ->roundBlockSizeMode(new $roundBlockModeClass());
 
         // Set error correction level
         $builder->errorCorrectionLevel($this->mapErrorCorrectionLevel($configuration));
@@ -82,13 +98,17 @@ class LibraryQrCodeGenerator implements QrCodeGeneratorServiceInterface
 
     private function mapErrorCorrectionLevel(QrCodeConfiguration $configuration)
     {
-        return match ($configuration->getErrorCorrectionLevel()->getValue()) {
-            'L' => new ErrorCorrectionLevelLow(),
-            'M' => new ErrorCorrectionLevelMedium(),
-            'Q' => new ErrorCorrectionLevelQuartile(),
-            'H' => new ErrorCorrectionLevelHigh(),
-            default => new ErrorCorrectionLevelMedium(),
-        };
+        $levelMap = [
+            'L' => 'Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow',
+            'M' => 'Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelMedium',
+            'Q' => 'Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelQuartile',
+            'H' => 'Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelHigh',
+        ];
+
+        $level = $configuration->getErrorCorrectionLevel()->getValue();
+        $className = $levelMap[$level] ?? $levelMap['M'];
+        
+        return new $className();
     }
 
     private function parseColor(string $hexColor): array
@@ -103,11 +123,14 @@ class LibraryQrCodeGenerator implements QrCodeGeneratorServiceInterface
 
     private function getWriter(FileType $fileType)
     {
-        return match ($fileType->getValue()) {
-            FileType::PNG, FileType::JPG => new PngWriter(),
-            FileType::SVG => new SvgWriter(),
-            default => new PngWriter(),
-        };
+        $writerMap = [
+            FileType::PNG => 'Endroid\QrCode\Writer\PngWriter',
+            FileType::JPG => 'Endroid\QrCode\Writer\PngWriter', // Use PNG writer for JPG too
+            FileType::SVG => 'Endroid\QrCode\Writer\SvgWriter',
+        ];
+
+        $className = $writerMap[$fileType->getValue()] ?? $writerMap[FileType::PNG];
+        return new $className();
     }
 
     private function generatePdf(string $qrCodeData, QrCodeConfiguration $configuration): string

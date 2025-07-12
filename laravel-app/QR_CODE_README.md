@@ -9,6 +9,43 @@ A comprehensive QR Code Generator service built with Laravel following Domain-Dr
 - **Customization**: Size, colors, dot styles, error correction levels
 - **High Performance**: Redis caching, 1000+ req/s target
 - **DDD Architecture**: Clean, maintainable, and testable code
+- **Smart Fallback**: Automatically uses best available QR generator
+
+## 🔧 Installation & Setup
+
+### 1. Install Dependencies
+```bash
+cd laravel-app
+composer install
+```
+
+**Note**: If composer install fails due to firewall restrictions, the service will automatically use a fallback generator that creates placeholder QR code images. Install dependencies when possible for production-quality QR codes.
+
+### 2. Check System Status
+```bash
+php artisan qrcode:status
+```
+
+This command will show:
+- ✅ Library availability status
+- ⚠️ Current generator being used
+- 📋 Setup recommendations
+
+### 3. Environment Configuration
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+### Dependencies
+
+The service requires these packages for full functionality:
+- `endroid/qr-code`: For production-quality QR code generation
+- `predis/predis`: For Redis caching support
+
+**Fallback Behavior**: If dependencies are not available, the service automatically switches to:
+- `SimpleQrCodeGenerator`: Creates placeholder QR code images
+- Array caching instead of Redis
 
 ## 📋 API Endpoints
 

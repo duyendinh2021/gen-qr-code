@@ -11,8 +11,12 @@ use App\Domain\QrCode\ValueObjects\FileType;
 class SimpleQrCodeGenerator implements QrCodeGeneratorServiceInterface
 {
     /**
-     * Simple QR code generator for testing purposes
-     * In production, use LibraryQrCodeGenerator with proper QR code library
+     * Simple QR code generator for testing purposes and fallback when endroid/qr-code is not available
+     * 
+     * This generates placeholder QR code images with basic patterns based on content hash.
+     * For production use, install endroid/qr-code package: composer install
+     * 
+     * The system will automatically use LibraryQrCodeGenerator when the library is available.
      */
     public function generate(Content $content, QrCodeConfiguration $configuration): string
     {

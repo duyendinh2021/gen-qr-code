@@ -25,9 +25,15 @@ class QrCodeServiceProvider extends ServiceProvider
         );
 
         // Bind generator service interface to implementation
+        // Use LibraryQrCodeGenerator if endroid/qr-code is available, otherwise SimpleQrCodeGenerator
         $this->app->bind(
             QrCodeGeneratorServiceInterface::class,
-            \App\Infrastructure\QrCode\Services\SimpleQrCodeGenerator::class
+            function ($app) {
+                if (class_exists('Endroid\QrCode\Builder\Builder')) {
+                    return new \App\Infrastructure\QrCode\Services\LibraryQrCodeGenerator();
+                }
+                return new \App\Infrastructure\QrCode\Services\SimpleQrCodeGenerator();
+            }
         );
 
         // Register cache service

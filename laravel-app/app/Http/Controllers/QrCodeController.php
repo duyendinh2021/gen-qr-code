@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\QrCode\UseCases\GenerateQrCodeUseCase;
 use App\Application\QrCode\DTOs\QrCodeGenerationRequest;
+use App\Domain\QrCode\Services\QrCodeGeneratorServiceInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -100,11 +101,27 @@ class QrCodeController extends Controller
      */
     public function health(): JsonResponse
     {
+        $generator = app(QrCodeGeneratorServiceInterface::class);
+        $generatorClass = get_class($generator);
+        $libraryAvailable = class_exists('Endroid\QrCode\Builder\Builder');
+        
         return response()->json([
             'success' => true,
-            'status' => 'healthy',
+            'status' => $libraryAvailable ? 'healthy' : 'limited',
             'timestamp' => now()->toISOString(),
-            'version' => '1.0.0'
+            'version' => '1.0.0',
+            'generator' => [
+                'class' => $generatorClass,
+                'type' => $libraryAvailable ? 'production' : 'fallback',
+                'library_available' => $libraryAvailable
+            ],
+            'dependencies' => [
+                'endroid_qr_code' => $libraryAvailable,
+                'redis_support' => class_exists('Redis') || class_exists('Predis\Client')
+            ],
+            'notes' => $libraryAvailable 
+                ? 'All dependencies available - production ready'
+                : 'Using fallback generator - install composer dependencies for production QR codes'
         ]);
     }
 }
