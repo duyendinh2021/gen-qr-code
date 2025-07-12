@@ -1,0 +1,322 @@
+openapi: 3.0.3
+info:
+  title: QR Code Generator API
+  description: |
+    A comprehensive QR Code Generator service built with Laravel following Domain-Driven Design (DDD) principles.
+    
+    The service supports multiple output formats, customization options, and high-performance caching.
+    
+    **Features:**
+    - Multiple formats: PNG, JPG, SVG, PDF
+    - Output types: storage, base64, stream
+    - Customization: size, colors, dot styles, error correction levels
+    - High performance caching with Redis
+    - Comprehensive validation and error handling
+  version: 1.0.0
+  contact:
+    name: QR Code Generator API
+    url: https://github.com/duyendinh2021/gen-qr-code
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost/api
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+paths:
+  /qr-codes/generate:
+    post:
+      summary: Generate QR Code
+      description: |
+        Generate a QR code with customizable options including size, colors, format, and output type.
+        
+        The service supports caching to improve performance for repeated requests.
+      operationId: generateQrCode
+      tags:
+        - QR Code Generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QrCodeGenerationRequest'
+            examples:
+              basic:
+                summary: Basic QR Code
+                value:
+                  content: "https://example.com"
+              custom:
+                summary: Custom QR Code
+                value:
+                  content: "Hello World"
+                  options:
+                    size: 400
+                    dot_style: "rounded"
+                    color: "#ff0000"
+                    background: "#ffffff"
+                    file_type: "png"
+                    output_type: "base64"
+                    error_correction: "H"
+              storage:
+                summary: Store to File
+                value:
+                  content: "Store this QR code"
+                  options:
+                    output_type: "storage"
+                    file_type: "png"
+      responses:
+        '200':
+          description: QR code generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QrCodeGenerationResponse'
+              examples:
+                success:
+                  summary: Successful generation
+                  value:
+                    success: true
+                    data:
+                      qr_code: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+                      format: "png"
+                      size: "300x300"
+                      cached: false
+                      generation_time_ms: 45
+                cached:
+                  summary: Cached result
+                  value:
+                    success: true
+                    data:
+                      qr_code: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+                      format: "png"
+                      size: "300x300"
+                      cached: true
+                      generation_time_ms: 2
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_error:
+                  summary: Validation failed
+                  value:
+                    success: false
+                    message: "Validation failed"
+                    errors:
+                      content: "Content is required"
+                      size: "Size must be between 50 and 2000 pixels"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /qr-codes/stats:
+    get:
+      summary: Get QR Code Statistics
+      description: Retrieve statistics and configuration information about the QR code service
+      operationId: getQrCodeStats
+      tags:
+        - QR Code Information
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+
+  /qr-codes/health:
+    get:
+      summary: Health Check
+      description: Check the health status of the QR code service
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  schemas:
+    QrCodeGenerationRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: The text/data to encode in the QR code
+          maxLength: 4296
+          example: "https://example.com"
+        options:
+          type: object
+          properties:
+            size:
+              type: integer
+              description: QR code size in pixels (square)
+              minimum: 50
+              maximum: 2000
+              example: 300
+            dot_style:
+              type: string
+              enum: [square, circle, rounded]
+              description: Style of QR code dots
+              example: "rounded"
+            color:
+              type: string
+              description: Foreground color (hex or named color)
+              pattern: '^#[0-9a-fA-F]{6}$|^(black|white|red|green|blue|yellow|cyan|magenta)$'
+              example: "#000000"
+            background:
+              type: string
+              description: Background color (hex or named color)
+              pattern: '^#[0-9a-fA-F]{6}$|^(black|white|red|green|blue|yellow|cyan|magenta)$'
+              example: "#ffffff"
+            file_type:
+              type: string
+              enum: [png, jpg, jpeg, svg, pdf]
+              description: Output file format
+              example: "png"
+            output_type:
+              type: string
+              enum: [storage, base64, stream]
+              description: How to return the QR code
+              example: "base64"
+            error_correction:
+              type: string
+              enum: [L, M, Q, H]
+              description: Error correction level
+              example: "M"
+
+    QrCodeGenerationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            qr_code:
+              type: string
+              description: QR code data (base64 or binary)
+              example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+            format:
+              type: string
+              description: File format used
+              example: "png"
+            size:
+              type: string
+              description: QR code dimensions
+              example: "300x300"
+            cached:
+              type: boolean
+              description: Whether result was retrieved from cache
+              example: false
+            generation_time_ms:
+              type: number
+              description: Time taken to generate (milliseconds)
+              example: 45.2
+            file_path:
+              type: string
+              description: File path (only for storage output type)
+              example: "/storage/qr-codes/qr_2024-01-01_12-00-00_abc123.png"
+            file_url:
+              type: string
+              description: Public URL (only for storage output type)
+              example: "https://example.com/storage/qr-codes/qr_2024-01-01_12-00-00_abc123.png"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation failed"
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            content: "Content is required"
+            size: "Size must be between 50 and 2000 pixels"
+
+    StatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            supported_formats:
+              type: array
+              items:
+                type: string
+              example: ["png", "jpg", "svg", "pdf"]
+            supported_output_types:
+              type: array
+              items:
+                type: string
+              example: ["storage", "base64", "stream"]
+            max_content_length:
+              type: integer
+              example: 4296
+            size_limits:
+              type: object
+              properties:
+                min:
+                  type: integer
+                  example: 50
+                max:
+                  type: integer
+                  example: 2000
+            error_correction_levels:
+              type: array
+              items:
+                type: string
+              example: ["L", "M", "Q", "H"]
+            dot_styles:
+              type: array
+              items:
+                type: string
+              example: ["square", "circle", "rounded"]
+
+    HealthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        status:
+          type: string
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+        version:
+          type: string
+          example: "1.0.0"
+
+tags:
+  - name: QR Code Generation
+    description: Generate QR codes with various customization options
+  - name: QR Code Information
+    description: Get information about the QR code service
+  - name: Health
+    description: Health check endpoints
