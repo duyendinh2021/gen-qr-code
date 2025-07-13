@@ -8,6 +8,7 @@ use App\Domain\QrCode\ValueObjects\DotStyle;
 use App\Domain\QrCode\ValueObjects\FileType;
 use App\Domain\QrCode\ValueObjects\OutputType;
 use App\Domain\QrCode\ValueObjects\ErrorCorrectionLevel;
+use Endroid\QrCode\RoundBlockSizeMode;
 
 class QrCodeConfiguration
 {
@@ -18,7 +19,8 @@ class QrCodeConfiguration
         private Color $background,
         private FileType $fileType,
         private OutputType $outputType,
-        private ErrorCorrectionLevel $errorCorrectionLevel
+        private ErrorCorrectionLevel $errorCorrectionLevel,
+        private ?RoundBlockSizeMode $roundBlockSizeMode = RoundBlockSizeMode::Margin
     ) {}
 
     public static function default(): self
@@ -30,7 +32,8 @@ class QrCodeConfiguration
             Color::white(),
             FileType::png(),
             OutputType::base64(),
-            ErrorCorrectionLevel::medium()
+            ErrorCorrectionLevel::medium(),
+            RoundBlockSizeMode::Margin
         );
     }
 
@@ -125,6 +128,20 @@ class QrCodeConfiguration
         );
     }
 
+    public function withRoundBlockSizeMode(?RoundBlockSizeMode $roundBlockSizeMode): self
+    {
+        return new self(
+            $this->size,
+            $this->dotStyle,
+            $this->color,
+            $this->background,
+            $this->fileType,
+            $this->outputType,
+            $this->errorCorrectionLevel,
+            $roundBlockSizeMode
+        );
+    }
+
     public function getSize(): Size
     {
         return $this->size;
@@ -160,6 +177,11 @@ class QrCodeConfiguration
         return $this->errorCorrectionLevel;
     }
 
+    public function getRoundBlockSizeMode(): ?RoundBlockSizeMode
+    {
+        return $this->roundBlockSizeMode;
+    }
+
     public function getHash(): string
     {
         return md5(serialize([
@@ -170,6 +192,7 @@ class QrCodeConfiguration
             $this->fileType->getValue(),
             $this->outputType->getValue(),
             $this->errorCorrectionLevel->getValue(),
+            $this->roundBlockSizeMode
         ]));
     }
 }
