@@ -20,7 +20,7 @@ class QrCodeGenerationResponse
     ) {}
 
     public static function success(
-        string $qrCodeData,
+        ?string $qrCodeData,
         QrCode $qrCode,
         float $generationTimeMs,
         bool $cached = false,

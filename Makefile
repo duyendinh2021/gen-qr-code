@@ -1,4 +1,11 @@
-PHONY: up down build logs shell composer npm
+# Default target
+.PHONY: help
+
+help: ## Show this help message
+	@echo 'Usage: make [target]'
+	@echo ''
+	@echo 'Targets:'
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # Start all services
 up:
@@ -33,6 +40,10 @@ fresh:
 	docker-compose run --rm composer create-project laravel/laravel .
 	cp .env.example .env
 	docker-compose run --rm php php artisan key:generate
+
+# run artisan commands
+artisan:
+	docker-compose run --rm php php artisan $(filter-out $@,$(MAKECMDGOALS))
 
 # Run tests
 test:

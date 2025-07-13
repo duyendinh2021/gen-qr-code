@@ -52,7 +52,7 @@ class GenerateQrCodeUseCase
                 $generationTime = (microtime(true) - $startTime) * 1000;
                 
                 return $this->createSuccessResponse(
-                    $cachedQrCode->getData(),
+                    $this->prepareResponseData($cachedQrCode),
                     $cachedQrCode,
                     $generationTime,
                     true
@@ -174,7 +174,7 @@ class GenerateQrCodeUseCase
         return $result;
     }
 
-    private function prepareResponseData(QrCode $qrCode): string
+    private function prepareResponseData(QrCode $qrCode): ?string
     {
         $outputType = $qrCode->getConfiguration()->getOutputType();
         $fileType = $qrCode->getConfiguration()->getFileType();
@@ -184,11 +184,22 @@ class GenerateQrCodeUseCase
             return 'data:' . $mimeType . ';base64,' . base64_encode($qrCode->getData());
         }
 
+        // For storage output type, don't include binary data in JSON response
+        if ($outputType->isStorage()) {
+            return null;
+        }
+
+        // For stream output type, don't include binary data in JSON response either
+        // Stream should be handled differently (direct response with headers)
+        if ($outputType->isStream()) {
+            return null;
+        }
+
         return $qrCode->getData();
     }
 
     private function createSuccessResponse(
-        string $qrCodeData,
+        ?string $qrCodeData,
         QrCode $qrCode,
         float $generationTimeMs,
         bool $cached = false,

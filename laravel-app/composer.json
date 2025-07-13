@@ -7,10 +7,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "endroid/qr-code": "^5.0",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-        "endroid/qr-code": "^5.0",
-        "predis/predis": "^2.0"
+        "predis/predis": "^2.0",
+        "setasign/fpdf": "^2.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

@@ -2,7 +2,6 @@
 
 namespace App\Domain\QrCode\Services;
 
-use App\Domain\QrCode\Entities\QrCode;
 use App\Domain\QrCode\ValueObjects\Content;
 use App\Domain\QrCode\Entities\QrCodeConfiguration;
 use App\Domain\QrCode\Exceptions\GenerationFailedException;
