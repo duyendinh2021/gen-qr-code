@@ -78,7 +78,7 @@ class LibraryQrCodeGenerator implements QrCodeGeneratorServiceInterface
             ->data($content->getValue())
             ->encoding(new Encoding('UTF-8'))
             ->size($configuration->getSize()->getWidth())
-            ->roundBlockSizeMode(RoundBlockSizeMode::Margin);
+            ->roundBlockSizeMode($configuration->getRoundBlockSizeMode() ?? RoundBlockSizeMode::Margin);
 
         // Set error correction level
         $builder->errorCorrectionLevel($this->mapErrorCorrectionLevel($configuration));
